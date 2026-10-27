@@ -5,13 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Artwork</title>
 <style>
-  :root { --bg: #F6F2EF; --gap: 16px; }
+  :root { --bg: #F6F2EF; --gap: 11px; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); }
   body { font-family: Georgia, "Times New Roman", serif; color: #222; }
 
-  /* Header placeholder - we'll design this last */
-  header { height: 120px; }
+  /* Header: name graphic, flush right with the grid, 500px high */
+  header {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--gap);
+    text-align: right;
+  }
+  header img {
+    display: block;
+    margin-left: auto;
+    height: 500px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: right center;
+  }
 
   /* Grid: columns are built by script so artwork reads left-to-right in order */
   #grid {
@@ -23,11 +37,26 @@
     padding: 0 var(--gap) 60px;
   }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
-  .col a { display: block; position: relative; transition: transform .2s ease; }
-  .col a:hover { transform: scale(1.05); z-index: 2; }
+  .col a {
+    display: block; position: relative;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .col a:hover {
+    transform: scale(1.03); z-index: 2;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+  }
   .col img { display: block; width: 100%; height: auto; cursor: zoom-in; }
 
   #msg { text-align: center; padding: 40px 16px; color: #777; }
+
+  footer {
+    text-align: center;
+    padding: 0 16px 36px;
+    font-size: 12px;
+    letter-spacing: .03em;
+    color: #b0a79f;
+  }
 
   /* Lightbox */
   #lightbox {
@@ -42,12 +71,14 @@
 </head>
 <body>
 
-<header><!-- header goes here --></header>
+<header><img src="images/headerName.svg" alt="Pawel Mielnik"></header>
 
 <main>
   <div id="grid"></div>
   <p id="msg">Loading…</p>
 </main>
+
+<footer>&copy; <span id="year"></span> Pawel Mielnik</footer>
 
 <div id="lightbox" aria-hidden="true"><img alt=""></div>
 
@@ -159,7 +190,23 @@ function close() {
   lb.setAttribute('aria-hidden', 'true');
   lbImg.removeAttribute('src');
 }
+document.getElementById('year').textContent = new Date().getFullYear();
+
 lb.addEventListener('click', close);
+
+/* Swipe left/right on touch screens = arrow keys */
+let tx = 0, ty = 0;
+lb.addEventListener('touchstart', e => {
+  tx = e.changedTouches[0].clientX;
+  ty = e.changedTouches[0].clientY;
+}, { passive: true });
+lb.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - tx;
+  const dy = e.changedTouches[0].clientY - ty;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+    open(dx < 0 ? current + 1 : current - 1);
+  }
+}, { passive: true });
 document.addEventListener('keydown', e => {
   if (!lb.classList.contains('open')) return;
   if (e.key === 'Escape') close();
