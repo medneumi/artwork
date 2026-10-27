@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Artwork</title>
+<style>
+  :root { --bg: #F6F2EF; --gap: 16px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); }
+  body { font-family: Georgia, "Times New Roman", serif; color: #222; }
+
+  /* Header placeholder - we'll design this last */
+  header { height: 120px; }
+
+  /* Grid: columns are built by script so artwork reads left-to-right in order */
+  #grid {
+    display: flex;
+    gap: var(--gap);
+    align-items: flex-start;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--gap) 60px;
+  }
+  .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
+  .col a { display: block; position: relative; transition: transform .2s ease; }
+  .col a:hover { transform: scale(1.05); z-index: 2; }
+  .col img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+
+  #msg { text-align: center; padding: 40px 16px; color: #777; }
+
+  /* Lightbox */
+  #lightbox {
+    position: fixed; inset: 0; z-index: 100;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(246, 242, 239, .97);
+    cursor: zoom-out;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 92vw; max-height: 92vh; object-fit: contain; }
+</style>
+</head>
+<body>
+
+<header><!-- header goes here --></header>
+
+<main>
+  <div id="grid"></div>
+  <p id="msg">Loading…</p>
+</main>
+
+<div id="lightbox" aria-hidden="true"><img alt=""></div>
+
+<script>
+/* ---- Settings: change only if you rename the repo or folder ---- */
+const OWNER  = 'medneumi';
+const REPO   = 'artwork';
+const FOLDER = 'art';
+/* ------------------------------------------------------------------
+   Naming convention (inside the "art" folder):
+     art01.jpg   -> full-size image (shown in the lightbox)
+     art01t.jpg  -> optional thumbnail for the grid
+   If there is no "t" file, the full image is used in the grid.
+   Order follows the number: art01, art02, ... art10, art11 ...
+------------------------------------------------------------------- */
+
+const IMG_RE = /^(art\d+)(t)?\.(jpe?g|png|gif|webp|avif|svg)$/i;
+const grid = document.getElementById('grid');
+const msg  = document.getElementById('msg');
+const lb   = document.getElementById('lightbox');
+const lbImg = lb.querySelector('img');
+
+let items = [];      // [{ full, thumb, ratio }]
+let current = -1;
+
+async function listFiles() {
+  const cacheKey = 'art-list-v1';
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+    if (cached && Date.now() - cached.t < 5 * 60 * 1000) return cached.names;
+  } catch (e) {}
+  const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}`);
+  if (!res.ok) throw new Error('GitHub API returned ' + res.status);
+  const names = (await res.json()).filter(f => f.type === 'file').map(f => f.name);
+  try { sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), names })); } catch (e) {}
+  return names;
+}
+
+function buildItems(names) {
+  const map = new Map();
+  for (const n of names) {
+    const m = n.match(IMG_RE);
+    if (!m) continue;
+    const key = m[1].toLowerCase();
+    const entry = map.get(key) || {};
+    if (m[2]) entry.thumb = n; else entry.full = n;
+    map.set(key, entry);
+  }
+  return [...map.entries()]
+    .filter(([, v]) => v.full || v.thumb)
+    .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+    .map(([, v]) => {
+      const full = v.full || v.thumb;
+      return { full: `${FOLDER}/${encodeURIComponent(full)}`,
+               thumb: `${FOLDER}/${encodeURIComponent(v.thumb || full)}`,
+               ratio: 1 };
+    });
+}
+
+function measure(item) {
+  return new Promise(resolve => {
+    const im = new Image();
+    im.onload = () => { item.ratio = im.naturalHeight / im.naturalWidth; resolve(); };
+    im.onerror = () => resolve();
+    im.src = item.thumb;
+  });
+}
+
+function columnCount() {
+  const w = window.innerWidth;
+  return w >= 1000 ? 3 : 2;
+}
+
+let lastCols = 0;
+function render() {
+  const n = columnCount();
+  lastCols = n;
+  grid.innerHTML = '';
+  const cols = Array.from({ length: n }, () => {
+    const c = document.createElement('div');
+    c.className = 'col';
+    c.h = 0;
+    grid.appendChild(c);
+    return c;
+  });
+  items.forEach((it, i) => {
+    const target = cols.reduce((a, b) => (b.h < a.h ? b : a));
+    const a = document.createElement('a');
+    a.href = it.full;
+    a.addEventListener('click', e => { e.preventDefault(); open(i); });
+    const img = document.createElement('img');
+    img.src = it.thumb;
+    img.alt = '';
+    img.loading = 'lazy';
+    a.appendChild(img);
+    target.appendChild(a);
+    target.h += it.ratio;
+  });
+}
+
+function open(i) {
+  current = (i + items.length) % items.length;
+  lbImg.src = items[current].full;
+  lb.classList.add('open');
+  lb.setAttribute('aria-hidden', 'false');
+}
+function close() {
+  lb.classList.remove('open');
+  lb.setAttribute('aria-hidden', 'true');
+  lbImg.removeAttribute('src');
+}
+lb.addEventListener('click', close);
+document.addEventListener('keydown', e => {
+  if (!lb.classList.contains('open')) return;
+  if (e.key === 'Escape') close();
+  if (e.key === 'ArrowRight') open(current + 1);
+  if (e.key === 'ArrowLeft') open(current - 1);
+});
+
+window.addEventListener('resize', () => {
+  if (items.length && columnCount() !== lastCols) render();
+});
+
+(async function init() {
+  try {
+    items = buildItems(await listFiles());
+    if (!items.length) { msg.textContent = 'No artwork found yet.'; return; }
+    await Promise.all(items.map(measure));
+    msg.remove();
+    render();
+  } catch (err) {
+    msg.textContent = 'Could not load artwork.';
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>
