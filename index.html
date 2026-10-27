@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Artwork</title>
 <style>
-  :root { --bg: #F6F2EF; --gap: 11px; }
+  :root { --bg: #F6F2EF; --gap: 8.8px; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); }
   body { font-family: Georgia, "Times New Roman", serif; color: #222; }
@@ -17,14 +17,16 @@
     padding: 0 var(--gap);
     text-align: right;
   }
+  /* Never taller than 350px (500px less 30%), never wider than the screen.
+     Height and width are both automatic, so the image keeps its proportions
+     and on narrow/portrait screens shrinks to fit with no empty space. */
   header img {
     display: block;
     margin-left: auto;
-    height: 500px;
     width: auto;
+    height: auto;
     max-width: 100%;
-    object-fit: contain;
-    object-position: right center;
+    max-height: 350px;
   }
 
   /* Grid: columns are built by script so artwork reads left-to-right in order */
@@ -43,8 +45,8 @@
     transition: transform .25s ease, box-shadow .25s ease;
   }
   .col a:hover {
-    transform: scale(1.03); z-index: 2;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+    transform: scale(1.02); z-index: 2;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .30);
   }
   .col img { display: block; width: 100%; height: auto; cursor: zoom-in; }
 
