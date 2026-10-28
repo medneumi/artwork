@@ -3,18 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<meta name="supported-color-schemes" content="light">
 <title>Artwork</title>
 <style>
-  :root { --bg: #F6F2EF; --gap: 8.8px; }
+  /* Always light: stops device dark mode (and browser auto-darkening)
+     from changing the background or the header graphic */
+  :root { --bg: #F6F2EF; --gap: 8.8px; color-scheme: only light; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); }
+  /* overflow-x hidden: edge images scale slightly on hover and would otherwise
+     cause a horizontal scrollbar when there are no side margins */
+  html, body { margin: 0; background: var(--bg); overflow-x: hidden; }
   body { font-family: Georgia, "Times New Roman", serif; color: #222; }
 
   /* Header: name graphic, flush right with the grid, 500px high */
   header {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 var(--gap);
+    margin: 0;
+    padding: 0;
     text-align: right;
   }
   /* Never taller than 350px (500px less 30%), never wider than the screen.
@@ -27,6 +32,7 @@
     height: auto;
     max-width: 100%;
     max-height: 350px;
+    margin-right: -8px;   /* bleeds 8px off the right edge of the screen */
   }
 
   /* Grid: columns are built by script so artwork reads left-to-right in order */
@@ -34,9 +40,8 @@
     display: flex;
     gap: var(--gap);
     align-items: flex-start;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 var(--gap) 60px;
+    margin: 0;
+    padding: 0 0 60px;
   }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
   .col a {
@@ -151,6 +156,7 @@ function measure(item) {
 
 function columnCount() {
   const w = window.innerWidth;
+  if (w >= 1600) return 4;
   return w >= 1000 ? 3 : 2;
 }
 
